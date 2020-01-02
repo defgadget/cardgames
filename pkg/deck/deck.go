@@ -62,7 +62,6 @@ func (v value) String() string {
 	values := [...]string{
 		"Joker",
 		"Ace",
-		"One",
 		"Two",
 		"Three",
 		"Four",
@@ -86,30 +85,38 @@ func (v value) String() string {
 type Deck []Card
 
 // AddJokers will add Jokers to the Deck - Jokers have no suit and
-func (d Deck) AddJokers(qty int) {
+func (d *Deck) AddJokers(qty int) {
 	joker := Card{-1, Joker}
 	for i := 0; i < qty; i++ {
-		d = append(d, joker)
+		*d = append(*d, joker)
 	}
 }
+
 // Refresh will return the deck to an unshuffled "New" state.
-func (d Deck) Refresh() {
-	d = New()
+func (d *Deck) Refresh() {
+	*d = New()
 }
+
 // Remove will remove cards from the deck. Remove does not assume of full deck
 // If you have already removed cards those removals will remain for subsequent calls to Remove
 // If you only whish for the current call to Remove to be applied you should call Refresh first. 
-func (d Deck) Remove(cards ...value) {
-	newdeck := make(Deck, len(d) - len(cards))
+func (d *Deck) Remove(cards ...value) {
+	newdeck := make(Deck, len(*d) - len(cards)*4)
 	insert := 0
-	for _, card := range d {
+	removeCard := false
+	for _, card := range *d {
 		for _, cv := range cards {
-			if card.Value != cv {
-				newdeck[insert] = card
+			if card.Value == cv {
+				removeCard = true
 			}
 		}
+		if !removeCard {
+			newdeck[insert] = card
+			insert++
+		}
+		removeCard = false
 	}
-	d = newdeck
+	*d = newdeck
 }
 
 // Shuffle will "shuffle" the cards in the deck to a random order
@@ -134,7 +141,6 @@ func New() Deck {
 		values := [...]string{
 		"Joker",
 		"Ace",
-		"One",
 		"Two",
 		"Three",
 		"Four",
@@ -178,7 +184,6 @@ func getValuesValue(s string) value {
 	values := [...]string{
 		"Joker",
 		"Ace",
-		"One",
 		"Two",
 		"Three",
 		"Four",
