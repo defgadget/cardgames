@@ -64,6 +64,14 @@ func TestNewDeckOrder(t *testing.T){
 	}
 }
 
+func TestMultiDeckSize(t *testing.T){
+	deck := NewMultiple(3)
+	expected := 52 * 3
+	if len(deck) != expected {
+		t.Error("The deck doesn't contain the correct amount of cards", len(deck))
+	}
+}
+
 func TestRefreshDeck(t *testing.T){
 	deck := New()
 	freshdeck := New()
@@ -149,5 +157,48 @@ func TestWithJokersShuffle(t *testing.T){
 	}
 	if numOfDifferences < 10 {
 		t.Error("Less than 10% variance between shuffled and unshuffled")
+	}
+}
+
+func TestSort(t *testing.T){
+	failed := false
+	fresh := New()
+	test := New()
+	test.Shuffle()
+	test.Sort()
+	for i := 0; i < len(fresh); i++{
+		if test[i] != fresh[i] {
+			failed = true	
+		}
+	}
+	if failed {
+		t.Error("There were cards out of order")
+	}
+}
+
+func TestDraw(t *testing.T){
+	deck := New()
+	top := deck[0]
+	drew := deck.Draw()
+	if drew.Suit != top.Suit && drew.Value != top.Value{
+		t.Error("Card isn't the same", top, drew)
+	}
+	if len(deck) != 51 {
+		t.Error("Still have 52 cards in deck after drawing 1")
+	}
+}
+
+func TestDrawCards(t *testing.T){
+	numOfCards := 3
+	deck := New()
+	topCards := deck[:numOfCards]
+	drew := deck.DrawCards(numOfCards)
+	for i, card := range topCards {
+		if card.Suit != drew[i].Suit && card.Value != drew[i].Value{
+			t.Error("Card isn't the same", card.Value, drew[i].Value)
+		}
+	}
+	if len(deck) != 52 - numOfCards {
+		t.Error("Too many cards in deck", len(deck))
 	}
 }
