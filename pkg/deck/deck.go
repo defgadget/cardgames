@@ -21,20 +21,20 @@ const (
 // These are the values of a playing card
 const (
 	Joker value = iota
-	Ace 
-	One 
-	Two 
-	Three 
-	Four 
-	Five 
-	Six 
-	Seven 
-	Eight 
-	Nine 
-	Ten 
-	Jack 
-	Queen 
-	King 
+	Ace
+	One
+	Two
+	Three
+	Four
+	Five
+	Six
+	Seven
+	Eight
+	Nine
+	Ten
+	Jack
+	Queen
+	King
 )
 // Card represents a card in a normal deck of playing cards. Containing Suit (Club, Spade, Heart, Diamond)
 // and a Value (Ace, 2 - 10, J, Q, K)
@@ -47,7 +47,7 @@ func (c Card) String() string {
 	if c.Value == Joker {
 		return "Joker"
 	}
-	return fmt.Sprintln(c.Value, "of", c.Suit)
+	return fmt.Sprintf("%v of %v", c.Value, c.Suit)
 }
 
 func (s suit) String() string {
@@ -133,7 +133,7 @@ func (d *Deck) Refresh() {
 
 // Remove will remove cards from the deck. Remove does not assume of full deck
 // If you have already removed cards those removals will remain for subsequent calls to Remove
-// If you only whish for the current call to Remove to be applied you should call Refresh first. 
+// If you only whish for the current call to Remove to be applied you should call Refresh first.
 func (d *Deck) Remove(cards ...value) {
 	newdeck := make(Deck, len(*d) - len(cards)*4)
 	insert := 0
