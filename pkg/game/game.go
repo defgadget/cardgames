@@ -1,7 +1,10 @@
 package game
 
 import (
+	"bufio"
 	"fmt"
+	"strings"
+	"os"
 
 	"github.com/defgadget/cardgames/pkg/deck"
 )
@@ -39,4 +42,14 @@ func Deal(d *deck.Deck, numCards int, players Players) {
 			players[j].Hand = append(players[j].Hand, newCard)
 		}
 	}
+}
+
+func GetChoice(msg string) string {
+    trim := strings.TrimSpace
+    lower := strings.ToLower
+    reader := bufio.NewReader(os.Stdin)
+    fmt.Print(msg)
+    text, _ := reader.ReadString('\n')
+    text = lower(trim(text))
+    return text
 }
