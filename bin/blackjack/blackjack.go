@@ -6,9 +6,29 @@ import (
 	"github.com/defgadget/cardgames/pkg/deck"
 	"github.com/defgadget/cardgames/pkg/game"
 )
+
+type BlackJack struct {
+    Players game.Players
+    Deck deck.Deck
+    Dealer game.Player
+}
+
+type Options struct {
+    NumPlayers int
+    NumDecks int
+    NumHands int
+}
+
+func New(opt Options) BlackJack {
+    players := setupPlayers(opt.NumPlayers)
+    d := deck.NewMultiple(opt.NumDecks)
+    d.Shuffle()
+    dealer := game.Player{Name: "Dealer", Hand: make([]deck.Card, 0)}
+    return BlackJack{players, d, dealer}
+}
+
 func scoreHand(cards []deck.Card) int {
     score := 0
-    hasAce := false
     for _, card := range cards {
         switch {
         case card.Value >= deck.Ten :
@@ -17,25 +37,20 @@ func scoreHand(cards []deck.Card) int {
             score += int(card.Value)
         case card.Value == deck.Ace :
             score += 1
-            hasAce = true
         }
     }
-    if hasAce && score + 10 <= 21 {
+    if softAce(cards) {
         score += 10
     }
     return score
 }
 
-func scoreRound(players game.Players) {
+func scoreRound(dealer game.Player, players game.Players) {
     // See who won
-    dealer := players[len(players)-1]
     dealerScore := scoreHand(dealer.Hand)
     busted := false
     for _, player := range players {
         playerScore := scoreHand(player.Hand)
-        if player.IsDealer {
-            break
-        }
         if scoreHand(player.Hand) > 21 {
             busted = true
         }
@@ -61,14 +76,23 @@ func setupPlayers(numPlayers int) game.Players {
     player := game.Player{}
     for i := 0; i < numPlayers; i++ {
         player.Name = fmt.Sprintf("Player %v", i + 1)
-        if i + 1 == numPlayers {
-            player.Name = " Dealer "
-            player.IsDealer = true
-        }
         player.Hand = make([]deck.Card, 0)
         players[i] = player
     }
     return players
+}
+
+func softAce(hand []deck.Card) bool {
+    hasAce := false
+    for _, card := range hand {
+        if card.Value == deck.Ace {
+            hasAce = true
+        }
+    }
+    if hasAce && scoreHand(hand) + 10 <= 21 {
+        return true
+    }
+    return false
 }
 
 func checkNoChoice(score int) bool {
@@ -86,36 +110,19 @@ func checkNoChoice(score int) bool {
     return finished
 }
 
-func playRound(players game.Players, d *deck.Deck) {
-    dealer := players[len(players)-1]
-    playerBusted := false
+func playRound(dealer *game.Player, players game.Players, d *deck.Deck) {
     playerFin := false
     playerScore := 0
-    dealerScore := scoreHand(dealer.Hand)
     choice := ""
     for i, player := range players {
         fmt.Printf("--- %v ---\n----------------\n", player.Name)
         playerScore = scoreHand(players[i].Hand)
-        if player.IsDealer && playerBusted {
-            fmt.Printf("%v\n\n", players[i].Hand)
-            break
-        }
         for !playerFin {
             fmt.Printf("%v\n\n", players[i].Hand)
             if checkNoChoice(playerScore) {
                 break
             }
-            if !player.IsDealer {
-                choice = game.GetChoice("Would you like to Hit or Stay? ")
-            }
-            if player.IsDealer {
-                dealerScore  = playerScore
-                if dealerScore < 17 {
-                    choice = "hit"
-                } else {
-                    choice  = "stay"
-                }
-            }
+            choice = game.GetChoice("Would you like to Hit or Stay? ")
             switch choice {
             case "hit":
                 newCard := d.Draw()
@@ -128,31 +135,43 @@ func playRound(players game.Players, d *deck.Deck) {
                 fmt.Printf("\nYou can only choose Hit or Stay\n\n")
             }
             playerScore = scoreHand(players[i].Hand)
-            if player.IsDealer {
-                dealerScore = playerScore
-            }
         }
         playerFin = false
-        if !player.IsDealer && playerScore > 21 {
-            playerBusted = true
+    }
+    dealerScore := scoreHand(dealer.Hand)
+    dealerStay := false
+    for !dealerStay {
+        fmt.Printf("--- %v ---\n----------------\n", dealer.Name)
+        fmt.Printf("%v\n\n", dealer.Hand)
+        if dealerScore < 17 || softAce(dealer.Hand) && dealerScore == 17 {
+            choice = "hit"
+        } else {
+            choice  = "stay"
+        }
+        switch choice {
+        case "hit":
+            newCard := d.Draw()
+            dealer.Hand = append(dealer.Hand, newCard)
+            fmt.Printf("\n**Hit** %v **Hit**\n\n", newCard)
+        case "stay":
+            fmt.Printf("\n**Stay** %v **Stay**\n\n", dealerScore)
+            dealerStay = true
+        default:
+            fmt.Printf("\nYou can only choose Hit or Stay\n\n")
+        }
+        dealerScore = scoreHand(dealer.Hand)
+        if checkNoChoice(dealerScore) {
+            break
         }
     }
 }
 
-func Play() {
-    d := deck.New()
-    d.Shuffle()
+func (bj *BlackJack) Play() {
     playing := true
     for playing {
-        if len(d) < 15 {
-            fmt.Println("Reshuffling Deck")
-            d = deck.New()
-            d.Shuffle()
-        }
-        players := setupPlayers(2)
-        game.Deal(&d, 2, players)
-        playRound(players, &d)
-        scoreRound(players)
+        game.Deal(&bj.Dealer, bj.Players, &bj.Deck, 2)
+        playRound(&bj.Dealer, bj.Players, &bj.Deck)
+        scoreRound(bj.Dealer, bj.Players)
         for gotAnswer := false; !gotAnswer; {
             another := game.GetChoice("Would you like to play another round? (Yes/No): ")
             switch another {

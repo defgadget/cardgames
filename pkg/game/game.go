@@ -30,17 +30,19 @@ type Players []Player
 // it will take a PlayerHand and will Score the hand based on the cards contained
 type ScoreHand func (hand Player)
 
-func Deal(d *deck.Deck, numCards int, players Players) {
+func Deal(dealer *Player, players Players, d *deck.Deck, numCards int) {
 	for i := 0; i < numCards; i++ {
 		for j := 0; j < len(players); j++ {
 			newCard := d.Draw()
-			if j == len(players)-1 && i == numCards - 1 {
-				fmt.Printf("%v dealt a ***** ** *****\n", players[j].Name)
-			} else {
-				fmt.Printf("%v dealt a %v\n", players[j].Name, newCard)
-			}
+			fmt.Printf("%v dealt a %v\n", players[j].Name, newCard)
 			players[j].Hand = append(players[j].Hand, newCard)
 		}
+		newCard := d.Draw()
+		if i == 0 {
+		    fmt.Printf("%v dealt a ******n", dealer.Name)
+		}
+		dealer.Hand = append(dealer.Hand, newCard)
+
 	}
 }
 
