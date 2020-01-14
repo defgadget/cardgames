@@ -11,6 +11,7 @@ type BlackJack struct {
     Players game.Players
     Deck deck.Deck
     Dealer game.Player
+    Opts Options
 }
 
 type Options struct {
@@ -24,11 +25,12 @@ func New(opt Options) BlackJack {
     d := deck.NewMultiple(opt.NumDecks)
     d.Shuffle()
     dealer := game.Player{Name: "Dealer", Hand: make([]deck.Card, 0)}
-    return BlackJack{players, d, dealer}
+    return BlackJack{players, d, dealer, opt}
 }
 
 func scoreHand(cards []deck.Card) int {
     score := 0
+    hasAce := false
     for _, card := range cards {
         switch {
         case card.Value >= deck.Ten :
@@ -36,10 +38,11 @@ func scoreHand(cards []deck.Card) int {
         case card.Value > deck.Ace && card.Value < deck.Ten :
             score += int(card.Value)
         case card.Value == deck.Ace :
+            hasAce = true
             score += 1
         }
     }
-    if softAce(cards) {
+    if hasAce && softAce(cards, score) {
         score += 10
     }
     return score
@@ -82,14 +85,14 @@ func setupPlayers(numPlayers int) game.Players {
     return players
 }
 
-func softAce(hand []deck.Card) bool {
+func softAce(hand []deck.Card, score int) bool {
     hasAce := false
     for _, card := range hand {
         if card.Value == deck.Ace {
             hasAce = true
         }
     }
-    if hasAce && scoreHand(hand) + 10 <= 21 {
+    if hasAce && score + 10 <= 21 {
         return true
     }
     return false
@@ -109,41 +112,14 @@ func checkNoChoice(score int) bool {
     }
     return finished
 }
-
-func playRound(dealer *game.Player, players game.Players, d *deck.Deck) {
-    playerFin := false
-    playerScore := 0
-    choice := ""
-    for i, player := range players {
-        fmt.Printf("--- %v ---\n----------------\n", player.Name)
-        playerScore = scoreHand(players[i].Hand)
-        for !playerFin {
-            fmt.Printf("%v\n\n", players[i].Hand)
-            if checkNoChoice(playerScore) {
-                break
-            }
-            choice = game.GetChoice("Would you like to Hit or Stay? ")
-            switch choice {
-            case "hit":
-                newCard := d.Draw()
-                players[i].Hand = append(players[i].Hand, newCard)
-                fmt.Printf("\n**Hit** %v **Hit**\n\n", newCard)
-            case "stay":
-                fmt.Printf("\n**Stay** %v **Stay**\n\n", playerScore)
-                playerFin = true
-            default:
-                fmt.Printf("\nYou can only choose Hit or Stay\n\n")
-            }
-            playerScore = scoreHand(players[i].Hand)
-        }
-        playerFin = false
-    }
+func dealerTurn(dealer *game.Player, d *deck.Deck) {
     dealerScore := scoreHand(dealer.Hand)
     dealerStay := false
+    choice := ""
     for !dealerStay {
         fmt.Printf("--- %v ---\n----------------\n", dealer.Name)
         fmt.Printf("%v\n\n", dealer.Hand)
-        if dealerScore < 17 || softAce(dealer.Hand) && dealerScore == 17 {
+        if dealerScore < 17 || softAce(dealer.Hand, dealerScore) && dealerScore == 17 {
             choice = "hit"
         } else {
             choice  = "stay"
@@ -165,6 +141,39 @@ func playRound(dealer *game.Player, players game.Players, d *deck.Deck) {
         }
     }
 }
+func playerTurn(player *game.Player, d *deck.Deck) {
+    choice := ""
+    playerScore := 0
+    playerFin := false
+    fmt.Printf("--- %v ---\n----------------\n", player.Name)
+    playerScore = scoreHand(player.Hand)
+    for !playerFin {
+        fmt.Printf("%v\n\n", player.Hand)
+        if checkNoChoice(playerScore) {
+            break
+        }
+        choice = game.GetChoice("Would you like to Hit or Stay? ")
+        switch choice {
+        case "hit":
+            newCard := d.Draw()
+            player.Hand = append(player.Hand, newCard)
+            fmt.Printf("\n**Hit** %v **Hit**\n\n", newCard)
+        case "stay":
+            fmt.Printf("\n**Stay** %v **Stay**\n\n", playerScore)
+            playerFin = true
+        default:
+            fmt.Printf("\nYou can only choose Hit or Stay\n\n")
+        }
+        playerScore = scoreHand(player.Hand)
+    }
+    playerFin = false
+}
+func playRound(dealer *game.Player, players game.Players, d *deck.Deck) {
+    for i, _ := range players {
+        playerTurn(&players[i], d)
+    }
+    dealerTurn(dealer, d)
+}
 
 func (bj *BlackJack) Play() {
     playing := true
@@ -178,6 +187,7 @@ func (bj *BlackJack) Play() {
             case "yes":
                 playing = true
                 gotAnswer = true
+                bj.resetHands()
             case "no":
                 playing = false
                 gotAnswer = true
@@ -186,4 +196,11 @@ func (bj *BlackJack) Play() {
             }
         }
     }
+}
+
+func (bj *BlackJack) resetHands() {
+    for i := 0; i < len(bj.Players); i++ {
+        bj.Players[i].Hand = make([]deck.Card, 0)
+    }
+    bj.Dealer.Hand = make([]deck.Card, 0)
 }

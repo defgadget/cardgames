@@ -31,19 +31,19 @@ type Players []Player
 type ScoreHand func (hand Player)
 
 func Deal(dealer *Player, players Players, d *deck.Deck, numCards int) {
-	for i := 0; i < numCards; i++ {
-		for j := 0; j < len(players); j++ {
-			newCard := d.Draw()
-			fmt.Printf("%v dealt a %v\n", players[j].Name, newCard)
-			players[j].Hand = append(players[j].Hand, newCard)
-		}
-		newCard := d.Draw()
-		if i == 0 {
-		    fmt.Printf("%v dealt a ******n", dealer.Name)
-		}
-		dealer.Hand = append(dealer.Hand, newCard)
-
+    var newCard deck.Card
+    for i := 0; i < numCards; i++ {
+	for j := 0; j < len(players); j++ {
+		newCard = d.Draw()
+		fmt.Printf("%v dealt a %v\n", players[j].Name, newCard)
+		players[j].Hand = append(players[j].Hand, newCard)
 	}
+	newCard = d.Draw()
+	if i == 0 {
+	    fmt.Printf("%v dealt a ******\n", dealer.Name)
+	} else {fmt.Printf("%v dealt a %v\n", dealer.Name, newCard)}
+	dealer.Hand = append(dealer.Hand, newCard)
+    }
 }
 
 func GetChoice(msg string) string {
